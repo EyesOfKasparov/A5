@@ -30,9 +30,64 @@ Prisma chart: https://www.dropbox.com/s/vbjf6ff73dv9tru/PRISMA%202009%20flow%20d
  . first try using lmer (to connect to what you know of mixed effects models)
  . then use rma() (to get some juicy additional statistics)
  
-```{r}
-pacman::p_load(tidyverse,ggplot2)
-readxl::read_xlsx("data.xlsx") %>% View
+```{r fig.width=4, fig.height=4}
+pacman::p_load(tidyverse,ggplot2, forestplot, RCurl, bitops, metafor, Formula)
+df <- read_csv("nice_format_data.csv")
+
+df_freq <- df %>% 
+    select(c(ArticleID, StudyID, Title, Authors, Year_publication, Article, SAMPLE_SIZE_HC, SAMPLE_SIZE_SZ, frequency, PITCH_F0_HC_M, PITCH_F0_HC_SD,PITCH_F0_SZ_M,PITCH_F0_SZ_SD))
+
+df_freq_var <- df %>% 
+    select(c(ArticleID, StudyID, Title, Authors, Year_publication, Article, SAMPLE_SIZE_HC, SAMPLE_SIZE_SZ, pitch_f0_variability, PITCH_F0SD_HC_M,PITCH_F0SD_HC_SD,PITCH_F0SD_SZ_M,PITCH_F0SD_SZ_SD))
+
+
+# 3
+model_data_freq <- metafor::escalc(
+        n1i = SAMPLE_SIZE_HC,
+        n2i = SAMPLE_SIZE_SZ,
+        m1i = PITCH_F0_HC_M,
+        m2i = PITCH_F0_SZ_M,
+        sd1i = PITCH_F0_HC_SD,
+        sd2i = PITCH_F0_SZ_SD,
+        data = df_freq,
+        measure = "SMD",
+        append = T
+    )
+
+model_freq <- rma(
+    yi,
+    vi,
+    data = model_data_freq
+)
+
+model_data_freq_var <- metafor::escalc(
+        n1i = SAMPLE_SIZE_HC,
+        n2i = SAMPLE_SIZE_SZ,
+        m1i = PITCH_F0SD_HC_M,
+        m2i = PITCH_F0SD_SZ_M,
+        sd1i = PITCH_F0SD_HC_SD,
+        sd2i = PITCH_F0SD_SZ_SD,
+        data = df_freq_var,
+        measure = "SMD",
+        append = T
+    )
+
+model_data_freq_var <- model_data_freq_var %>% filter(yi > -1)
+
+model_freq_var <- rma(
+    yi,
+    vi,
+    data = model_data_freq_var
+)
+
+forest(model_freq, slab = df_freq$Article)
+
+funnel(model_freq)
+funnel(model_freq_var)
+
+model_data_freq_var %>% as.data.frame %>% filter(yi > 1)
+
+
 ```
  
 
