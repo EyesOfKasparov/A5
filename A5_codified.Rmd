@@ -63,16 +63,23 @@ a3_dat_raw <- read_csv("../A3-2/finalish_data.csv")
 
 a3_dat <- a3_dat_raw %>% 
   drop_na(Diagnosis) %>% 
+  mutate(Diagnosis = if_else(Diagnosis == "Control", "HC", "SZ")) %>% 
   group_by(Diagnosis) %>% 
-  summarise(n_people = n(), 
-            freq_var_sd = sd(freq_sd),
+  summarise(SAMPLE_SIZE = n(), 
+            SD_of_var_in = sd(freq_sd),
             freq_sd = sd(freq_mean), 
             freq_mean = mean(freq_mean), 
-            freq_var_mean = mean(freq_sd, na.rm = T))
+            Mean_of_var_in = mean(freq_sd, na.rm = T))
+    
 
+    # Mean_of_var_in_HC = PITCH_F0SD_HC_M,
+    # SD_of_var_in_HC = PITCH_F0SD_HC_SD,
+    # Mean_of_var_in_SZ = PITCH_F0SD_SZ_M,
+    # SD_of_var_in_SZ = PITCH_F0SD_SZ_SD
 
+    
 a3_wide <- a3_dat %>% 
-  pivot_wider(names_from = Diagnosis, values_from = n_people:freq_var_mean)
+  pivot_wider(names_from = Diagnosis, values_from = SAMPLE_SIZE:Mean_of_var_in)
 ```
 
 
