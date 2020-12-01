@@ -29,6 +29,12 @@ Prisma chart: https://www.dropbox.com/s/vbjf6ff73dv9tru/PRISMA%202009%20flow%20d
 - Following the procedure in the slides calculate effect size and standard error of the effect size per each study. N.B. we focus on pitch mean and pitch standard deviation.
  . first try using lmer (to connect to what you know of mixed effects models)
  . then use rma() (to get some juicy additional statistics)
+ 
+```{r}
+pacman::p_load(tidyverse,ggplot2)
+
+```
+ 
 
 - Build a forest plot of the results (forest(model))
  
