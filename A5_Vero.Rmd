@@ -20,7 +20,7 @@ knitr::opts_chunk$set(echo = TRUE)
   N.B. Only measures of pitch mean and pitch sd are required for the assignment (all the other measures have been removed from the dataset for the sake of simplicity). 
 
 ```{r}
-pacman::p_load(tidyverse, ggplot2, metafor)
+pacman::p_load(tidyverse, ggplot2, metafor, dyplr)
 data <- read_csv("nice_format_data.csv")
 
 data_freq <- data %>% 
@@ -32,11 +32,9 @@ data_var <- data %>%
     Mean_of_var_in_HC = PITCH_F0SD_HC_M,
     SD_of_var_in_HC = PITCH_F0SD_HC_SD,
     Mean_of_var_in_SZ = PITCH_F0SD_SZ_M,
-    SD_of_var_in_SZ = PITCH_F0SD_SZ_SD
-  )
+    SD_of_var_in_SZ = PITCH_F0SD_SZ_SD) %>% 
+  
 
-
-st2f( st, base=50 )
 
 # In the first step we use the escalc() function to calculate effect sizes and their variance.
 data_var <- escalc(n1i = SAMPLE_SIZE_HC, n2i = SAMPLE_SIZE_SZ, m1i = Mean_of_var_in_HC, m2i = Mean_of_var_in_SZ, 
@@ -48,8 +46,11 @@ ma_model_1 <- rma(yi, vi, data = data_var)
 summary(ma_model_1)
 
 # There is a lot of info in the R output above. Most importantly you can see that there is an summary effect size of 0.2425 representing differences between patients and controls. Also this difference is statistically insignificant with a p=0.4054. In order to visualize the results you can create a forest-plot using the forest() function.
+# for that reason, we add a unique ID for each row
 
-forest(ma_model_1, slab = paste(data_var$studyID, as.character(data_var$Year_publication), sep = ", "))
+data_var <- mutate(data_var, unique_ID = row_number())
+
+forest(ma_model_1, slab = paste(as.character(data_var$unique_ID), sep = ", "))
 
 # A common way to investigate potential publication bias in a meta-analysis is the funnel plot. Asymmetrical distribution indicates potential publication bias.
 
