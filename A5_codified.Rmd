@@ -40,10 +40,39 @@ Prisma chart: https://www.dropbox.com/s/vbjf6ff73dv9tru/PRISMA%202009%20flow%20d
 ```{r}
 library(xlsx)
 library(tidyverse)
+pacman::p_load(metafor)
 ```
 
 ```{r}
 raw_excel <- read.xlsx("data.xlsx", 1)
 write_csv(raw_excel, "nice_format_data.csv")
+
+nice_data <- read_csv("nice_format_data.csv")
 ```
+
+# Finding relevant columns
+```{r}
+nice_data %>% 
+  select(StudyID, ArticleID, Article, frequency, starts_with("PITCH_F0") & !(starts_with("PITCH_F0_ENTROPY") | starts_with("PITCH_F0RAN"))) %>% 
+  View()
+```
+
+### Assignment 3 data
+```{r}
+a3_dat_raw <- read_csv("../A3-2/finalish_data.csv")
+
+a3_dat <- a3_dat_raw %>% 
+  drop_na(Diagnosis) %>% 
+  group_by(Diagnosis) %>% 
+  summarise(n_people = n(), 
+            freq_var_sd = sd(freq_sd),
+            freq_sd = sd(freq_mean), 
+            freq_mean = mean(freq_mean), 
+            freq_var_mean = mean(freq_sd, na.rm = T))
+
+
+a3_wide <- a3_dat %>% 
+  pivot_wider(names_from = Diagnosis, values_from = n_people:freq_var_mean)
+```
+
 
