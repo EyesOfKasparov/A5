@@ -39,9 +39,11 @@ Prisma chart: https://www.dropbox.com/s/vbjf6ff73dv9tru/PRISMA%202009%20flow%20d
 # Loading libraries
 ```{r}
 library(xlsx)
+library(tidyverse)
 ```
 
 ```{r}
-
+raw_excel <- read.xlsx("data.xlsx", 1)
+write_csv(raw_excel, "nice_format_data.csv")
 ```
 
