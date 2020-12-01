@@ -59,9 +59,9 @@ nice_data %>%
 
 ### Assignment 3 data
 ```{r}
-a3_dat <- read_csv("../A3-2/finalish_data.csv")
+a3_dat_raw <- read_csv("../A3-2/finalish_data.csv")
 
-a3_dat %>% 
+a3_dat <- a3_dat_raw %>% 
   drop_na(Diagnosis) %>% 
   group_by(Diagnosis) %>% 
   summarise(n_people = n(), 
@@ -69,9 +69,13 @@ a3_dat %>%
             freq_sd = sd(freq_mean), 
             freq_mean = mean(freq_mean), 
             freq_var_mean = mean(freq_sd, na.rm = T))
+
+
+a3_wide <- a3_dat %>% 
+  pivot_wider(names_from = Diagnosis, values_from = n_people:freq_var_mean)
 ```
 
 ```{r}
-?sd
+
 ```
 
