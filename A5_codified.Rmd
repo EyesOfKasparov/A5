@@ -79,7 +79,13 @@ a3_dat <- a3_dat_raw %>%
 
     
 a3_wide <- a3_dat %>% 
-  pivot_wider(names_from = Diagnosis, values_from = SAMPLE_SIZE:Mean_of_var_in)
+  pivot_wider(names_from = Diagnosis, 
+              values_from = SAMPLE_SIZE:Mean_of_var_in) %>% 
+  rename(PITCH_F0_SZ_SD = freq_sd_SZ, 
+         PITCH_F0_SZ_M = freq_mean_SZ, 
+         PITCH_F0_HC_SD = freq_sd_HC, 
+         PITCH_F0_HC_M = freq_mean_HC)
+
 ```
 
 
