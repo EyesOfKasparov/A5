@@ -21,17 +21,98 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Tips on the process to follow:
 
-- Download the data on all published articles analyzing voice in schizophrenia and the prisma chart as reference of all articles found and reviewed
+*Download the data on all published articles analyzing voice in schizophrenia and the prisma chart as reference of all articles found and reviewed*
 Data: https://www.dropbox.com/s/0l9ur0gaabr80a8/Matrix_MetaAnalysis_Diagnosis_updated290719.xlsx?dl=0
 Prisma chart: https://www.dropbox.com/s/vbjf6ff73dv9tru/PRISMA%202009%20flow%20diagram_PP.pptx?dl=0 
-- Look through the dataset to find out which columns to use, and if there is any additional information written as comments (real world data is always messy!).
-    * Hint: PITCH_F0M and PITCH_F0SD group of variables are what you need
-- Following the procedure in the slides calculate effect size and standard error of the effect size per each study. N.B. we focus on pitch mean and pitch standard deviation.
+
+```{r Load packages & data}
+
+pacman::p_load(tidyverse, ggplot2, metafor)
+
+data <- read_csv("nice_format_data.csv")
+
+```
+
+
+*Look through the dataset to find out which columns to use, and if there is any additional information written as comments (real world data is always messy!).*
+    . Hint: PITCH_F0M and PITCH_F0SD group of variables are what you need
+
+```{r Subset frequency data}
+
+data_freq <- data %>% 
+  select(c(ArticleID,
+           StudyID,
+           Title,
+           Authors,
+           Year_publication,
+           Article,
+           SAMPLE_SIZE_SZ,
+           SAMPLE_SIZE_HC,
+           frequency,
+           PITCH_F0_HC_M,
+           PITCH_F0_HC_SD,
+           PITCH_F0_SZ_M,
+           PITCH_F0_SZ_SD)) 
+
+
+# standardizing the unit for frequency
+## st2f(st, base = 50)
+
+
+```
+
+
+*Following the procedure in the slides calculate effect size and standard error of the effect size per each study. N.B. we focus on pitch mean and pitch standard deviation.*
  . first try using lmer (to connect to what you know of mixed effects models)
  . then use rma() (to get some juicy additional statistics)
 
-- Build a forest plot of the results (forest(model))
- 
-- Go back to Assignment 3, add your own study to the data table, and re-run meta-analysis. Do the results change?
+```{r Effect size}
 
-- Now look at the output of rma() and check tau and I2
+# use escalc() function to calculate effect sizes
+data_freq_es <- escalc(n1i = SAMPLE_SIZE_HC,
+                       n2i = SAMPLE_SIZE_SZ,
+                       m1i = PITCH_F0_HC_M,
+                       m2i = PITCH_F0_SZ_M,
+                       sd1i = PITCH_F0_HC_SD,
+                       sd2i = PITCH_F0_SZ_SD,
+                       data = data_freq, measure = "SMD", append = TRUE)
+
+
+# using effect sizes to calculate random-effects meta-analysis
+ma_model_2 <- rma(yi, vi, data = data_freq_es)
+summary(ma_model_2)
+
+```
+
+We can see that there is a summary effect size of -0.1628 representing differences between patients and controls.
+However, this difference is statistically insignificant, p = 0.2948.
+
+*Build a forest plot of the results (forest(model))*
+
+```{r Forest plot}
+
+# visualize the results with a forest-plot using the forest() function.
+
+forest(ma_model_2,
+       slab = paste(data_freq_es$StudyID, as.character(data_freq_es$Year_publication), sep = ", "))
+
+# A common way to investigate potential publication bias in a meta-analysis is the funnel plot. Asymmetrical distribution indicates potential publication bias.
+
+funnel(ma_model_2)
+
+```
+
+
+*Go back to Assignment 3, add your own study to the data table, and re-run meta-analysis. Do the results change?*
+
+```{r}
+
+```
+
+
+*Now look at the output of rma() and check tau and I2*
+
+```{r}
+
+```
+
