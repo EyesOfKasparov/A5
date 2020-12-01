@@ -75,7 +75,4 @@ a3_wide <- a3_dat %>%
   pivot_wider(names_from = Diagnosis, values_from = n_people:freq_var_mean)
 ```
 
-```{r}
-
-```
 
