@@ -32,7 +32,7 @@ Prisma chart: https://www.dropbox.com/s/vbjf6ff73dv9tru/PRISMA%202009%20flow%20d
  
 ```{r}
 pacman::p_load(tidyverse,ggplot2)
-
+readxl::read_xlsx("data.xlsx") %>% View
 ```
  
 
