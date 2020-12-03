@@ -64,7 +64,7 @@ a3_dat_raw <- read_csv("../A3-2/finalish_data.csv")
 a3_dat <- a3_dat_raw %>% 
   drop_na(Diagnosis) %>% 
   mutate(Diagnosis = if_else(Diagnosis == "Control", "HC", "SZ")) %>% 
-  group_by(Diagnosis) %>% 
+  group_by(study_nr, Diagnosis) %>% 
   summarise(SAMPLE_SIZE = n(), 
             SD_of_var_in = sd(freq_sd),
             freq_sd = sd(freq_mean), 
@@ -85,9 +85,8 @@ a3_wide <- a3_dat %>%
          PITCH_F0_SZ_M = freq_mean_SZ, 
          PITCH_F0_HC_SD = freq_sd_HC, 
          PITCH_F0_HC_M = freq_mean_HC) %>% 
-  mutate(ArticleID = 100,
-         StudyID = 100, 
-         Title = "Study Group 3", 
+  mutate(ArticleID = 100 + row_number(),
+         StudyID = 100 + row_number(), 
          Authors = "El Nino, Lord Esbo, Biker Davo, Vero the Hero, JoJo el Salsa")
 
 ```
