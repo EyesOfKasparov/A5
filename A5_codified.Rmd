@@ -79,7 +79,107 @@ a3_dat <- a3_dat_raw %>%
 
     
 a3_wide <- a3_dat %>% 
-  pivot_wider(names_from = Diagnosis, values_from = SAMPLE_SIZE:Mean_of_var_in)
+  pivot_wider(names_from = Diagnosis, 
+              values_from = SAMPLE_SIZE:Mean_of_var_in) %>% 
+  rename(PITCH_F0_SZ_SD = freq_sd_SZ, 
+         PITCH_F0_SZ_M = freq_mean_SZ, 
+         PITCH_F0_HC_SD = freq_sd_HC, 
+         PITCH_F0_HC_M = freq_mean_HC) %>% 
+  mutate(ArticleID = 100,
+         StudyID = 100, 
+         Title = "Study Group 3", 
+         Authors = "El Nino, Lord Esbo, Biker Davo, Vero the Hero, JoJo el Salsa")
+
 ```
 
+### El Vero Codo
+```{r}
+data_freq <- nice_data %>% 
+  select(c(ArticleID, StudyID, Title, Authors, Year_publication, Article, SAMPLE_SIZE_SZ, SAMPLE_SIZE_HC, frequency, PITCH_F0_HC_M, PITCH_F0_HC_SD, PITCH_F0_SZ_M, PITCH_F0_SZ_SD)) 
+
+data_var <- data %>% 
+  select(c(ArticleID, StudyID, Title, Authors, Year_publication, Article, SAMPLE_SIZE_SZ, SAMPLE_SIZE_HC, pitch_f0_variability, PITCH_F0SD_HC_M, PITCH_F0SD_HC_SD, PITCH_F0SD_SZ_M, PITCH_F0SD_SZ_SD)) %>% 
+  rename(
+    Mean_of_var_in_HC = PITCH_F0SD_HC_M,
+    SD_of_var_in_HC = PITCH_F0SD_HC_SD,
+    Mean_of_var_in_SZ = PITCH_F0SD_SZ_M,
+    SD_of_var_in_SZ = PITCH_F0SD_SZ_SD)
+
+
+
+# In the first step we use the escalc() function to calculate effect sizes and their variance.
+data_var <- escalc(n1i = SAMPLE_SIZE_HC, n2i = SAMPLE_SIZE_SZ, m1i = Mean_of_var_in_HC, m2i = Mean_of_var_in_SZ, 
+    sd1i = SD_of_var_in_HC, sd2i = SD_of_var_in_SZ, data = data_var, measure = "SMD",
+    append = TRUE)
+
+# Using the effect sizes and variance we can calculate the random-effects meta-analysis. The results are stored in the object 'ma_model_1'. You can retrieve the results using the summary() function.
+ma_model_1 <- rma(yi, vi, data = data_var)
+summary(ma_model_1)
+
+# There is a lot of info in the R output above. Most importantly you can see that there is an summary effect size of 0.2425 representing differences between patients and controls. Also this difference is statistically insignificant with a p=0.4054. In order to visualize the results you can create a forest-plot using the forest() function.
+# for that reason, we add a unique ID for each row
+
+data_var <- mutate(data_var, unique_ID = row_number())
+
+forest(ma_model_1, slab = data_var$unique_ID)
+
+# A common way to investigate potential publication bias in a meta-analysis is the funnel plot. Asymmetrical distribution indicates potential publication bias.
+
+funnel(ma_model_1)
+
+```
+
+## Adding our results
+
+### Data var 
+```{r}
+new_data_var <- data_var %>% 
+  bind_rows(a3_wide) %>% 
+  escalc(n1i = SAMPLE_SIZE_HC, n2i = SAMPLE_SIZE_SZ, m1i = Mean_of_var_in_HC, m2i = Mean_of_var_in_SZ, 
+    sd1i = SD_of_var_in_HC, sd2i = SD_of_var_in_SZ, data = ., measure = "SMD",
+    append = TRUE) %>% 
+  mutate(unique_ID = row_number())
+
+
+updated_ma_model_1 <- rma(yi, vi, data = new_data_var)
+summary(updated_ma_model_1)
+
+forest(updated_ma_model_1, slab = new_data_var$unique_ID)
+
+
+  
+```
+
+### Data Freq
+```{r}
+data_freq_new <- nice_data %>% 
+  select(c(ArticleID,
+           StudyID,
+           Title,
+           Authors,
+           Year_publication,
+           Article,
+           SAMPLE_SIZE_SZ,
+           SAMPLE_SIZE_HC,
+           frequency,
+           PITCH_F0_HC_M,
+           PITCH_F0_HC_SD,
+           PITCH_F0_SZ_M,
+           PITCH_F0_SZ_SD)) %>% 
+  bind_rows(a3_wide) %>%
+  # Doing the escalc stuff
+  escalc(n1i = SAMPLE_SIZE_HC,
+                       n2i = SAMPLE_SIZE_SZ,
+                       m1i = PITCH_F0_HC_M,
+                       m2i = PITCH_F0_SZ_M,
+                       sd1i = PITCH_F0_HC_SD,
+                       sd2i = PITCH_F0_SZ_SD,
+                       data = ., measure = "SMD", append = TRUE) %>% 
+  mutate(unique_id = row_number())
+
+ma_model_2_updated <- rma(yi, vi, data = data_freq_new)
+summary(ma_model_2_updated)
+
+forest(ma_model_2_updated, slab = data_freq_new$unique_id)
+```
 
