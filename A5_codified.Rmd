@@ -171,6 +171,7 @@ data_freq_new <- nice_data %>%
            PITCH_F0_HC_SD,
            PITCH_F0_SZ_M,
            PITCH_F0_SZ_SD)) %>% 
+  filter(str_detect(frequency, "hz") | is.na(frequency)) %>% 
   bind_rows(a3_wide) %>%
   # Doing the escalc stuff
   escalc(n1i = SAMPLE_SIZE_HC,
