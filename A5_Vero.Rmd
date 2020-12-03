@@ -44,7 +44,7 @@ data_var_trans <- data_var %>%
   mutate(Mean_of_var_in_SZ = if_else(pitch_f0_variability == "Log10  Hz", 10**Mean_of_var_in_SZ, Mean_of_var_in_SZ),
          SD_of_var_in_SZ = if_else(pitch_f0_variability == "Log10  Hz", 10**SD_of_var_in_SZ, SD_of_var_in_SZ),
          pitch_f0_variability = if_else(pitch_f0_variability == "Log10  Hz", "hz", pitch_f0_variability)) %>% 
-  filter(str_detect(pitch_f0_variability, 'hz|Hz|herz|Herz') | is.na(pitch_f0_variability),
+  filter(str_detect(pitch_f0_variability, 'hz|Hz|hertz|Hertz') | is.na(pitch_f0_variability),
          !str_detect(pitch_f0_variability, 'not specified, maybe hz?') | is.na(pitch_f0_variability))
 
 # In the first step we use the escalc() function to calculate effect sizes and their variance.
@@ -58,7 +58,7 @@ summary(ma_model_1)
 
 # There is a lot of info in the R output above. Most importantly you can see that there is an summary effect size of 0.3646 representing differences between patients and controls. This difference is statistically significant with p=0.0123. In order to visualize the results you can create a forest-plot using the forest() function.
 
-forest(ma_model_1, slab = paste(as.character(data_var_trans$unique_ID), sep = ", "))
+forest(ma_model_1, slab = paste(as.character(data_var_trans$Article, sep = ", ")))
 
 # A common way to investigate potential publication bias in a meta-analysis is the funnel plot. Asymmetrical distribution indicates potential publication bias.
 
