@@ -35,11 +35,11 @@ pacman::p_load(tidyverse,ggplot2, forestplot, RCurl, bitops, metafor, Formula)
 df <- read_csv("nice_format_data.csv")
 
 df_freq <- df %>% 
-    select(c(ArticleID, StudyID, Title, Authors, Year_publication, Article, SAMPLE_SIZE_HC, SAMPLE_SIZE_SZ, frequency, PITCH_F0_HC_M, PITCH_F0_HC_SD,PITCH_F0_SZ_M,PITCH_F0_SZ_SD))
+    select(c(ArticleID, StudyID, Title, Authors, Year_publication, Article, SAMPLE_SIZE_HC, SAMPLE_SIZE_SZ, frequency, PITCH_F0_HC_M, PITCH_F0_HC_SD,PITCH_F0_SZ_M,PITCH_F0_SZ_SD)) %>% drop_na %>% filter(frequency == "hz")
 
 df_freq_var <- df %>% 
-    select(c(ArticleID, StudyID, Title, Authors, Year_publication, Article, SAMPLE_SIZE_HC, SAMPLE_SIZE_SZ, pitch_f0_variability, PITCH_F0SD_HC_M,PITCH_F0SD_HC_SD,PITCH_F0SD_SZ_M,PITCH_F0SD_SZ_SD))
-
+    select(c(ArticleID, StudyID, Title, Authors, Year_publication, Article, SAMPLE_SIZE_HC, SAMPLE_SIZE_SZ, pitch_f0_variability, PITCH_F0SD_HC_M,PITCH_F0SD_HC_SD,PITCH_F0SD_SZ_M,PITCH_F0SD_SZ_SD)) %>% 
+    filter(PITCH_F0SD_HC_M > 5)
 
 # 3
 model_data_freq <- metafor::escalc(
@@ -52,7 +52,7 @@ model_data_freq <- metafor::escalc(
         data = df_freq,
         measure = "SMD",
         append = T
-    )
+    ) 
 
 model_freq <- rma(
     yi,
@@ -72,7 +72,7 @@ model_data_freq_var <- metafor::escalc(
         append = T
     )
 
-model_data_freq_var <- model_data_freq_var %>% filter(yi > -1)
+# model_data_freq_var <- model_data_freq_var %>% filter(yi > -1)
 
 model_freq_var <- rma(
     yi,
@@ -81,11 +81,13 @@ model_freq_var <- rma(
 )
 
 forest(model_freq, slab = df_freq$Article)
+forest(model_freq_var, slab = df_freq_var$Article)
+summary(model_freq_var)
 
 funnel(model_freq)
 funnel(model_freq_var)
 
-model_data_freq_var %>% as.data.frame %>% filter(yi > 1)
+model_data_freq_var %>% as.data.frame
 
 
 ```
