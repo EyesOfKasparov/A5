@@ -20,37 +20,44 @@ knitr::opts_chunk$set(echo = TRUE)
   N.B. Only measures of pitch mean and pitch sd are required for the assignment (all the other measures have been removed from the dataset for the sake of simplicity). 
 
 ```{r}
-pacman::p_load(tidyverse, ggplot2, metafor, dyplr)
+#load data and packages
+pacman::p_load(tidyverse, ggplot2, metafor, dplyr)
 data <- read_csv("nice_format_data.csv")
 
+#create 2 dataframes, separately for the frequency and the variability data columns
 data_freq <- data %>% 
   select(c(ArticleID, StudyID, Title, Authors, Year_publication, Article, SAMPLE_SIZE_SZ, SAMPLE_SIZE_HC, frequency, PITCH_F0_HC_M, PITCH_F0_HC_SD, PITCH_F0_SZ_M, PITCH_F0_SZ_SD)) 
 
+# in the variability data rename the columns to more straightofrward names, and add row number as unique ID
 data_var <- data %>% 
   select(c(ArticleID, StudyID, Title, Authors, Year_publication, Article, SAMPLE_SIZE_SZ, SAMPLE_SIZE_HC, pitch_f0_variability, PITCH_F0SD_HC_M, PITCH_F0SD_HC_SD, PITCH_F0SD_SZ_M, PITCH_F0SD_SZ_SD)) %>% 
   rename(
     Mean_of_var_in_HC = PITCH_F0SD_HC_M,
     SD_of_var_in_HC = PITCH_F0SD_HC_SD,
     Mean_of_var_in_SZ = PITCH_F0SD_SZ_M,
-    SD_of_var_in_SZ = PITCH_F0SD_SZ_SD) %>% 
+    SD_of_var_in_SZ = PITCH_F0SD_SZ_SD) %>%
+  mutate(unique_ID = row_number())
   
+# create a new dataframe, where the sound units are changed/uniformizied to Herz (by taking the exponent of the values in the rows where the pitch_f0_variability is "Log10 Hz")
+
+data_var_trans <- data_var %>% 
+  mutate(Mean_of_var_in_SZ = if_else(pitch_f0_variability == "Log10  Hz", 10**Mean_of_var_in_SZ, Mean_of_var_in_SZ),
+         SD_of_var_in_SZ = if_else(pitch_f0_variability == "Log10  Hz", 10**SD_of_var_in_SZ, SD_of_var_in_SZ),
+         pitch_f0_variability = if_else(pitch_f0_variability == "Log10  Hz", "hz", pitch_f0_variability))
 
 
 # In the first step we use the escalc() function to calculate effect sizes and their variance.
-data_var <- escalc(n1i = SAMPLE_SIZE_HC, n2i = SAMPLE_SIZE_SZ, m1i = Mean_of_var_in_HC, m2i = Mean_of_var_in_SZ, 
-    sd1i = SD_of_var_in_HC, sd2i = SD_of_var_in_SZ, data = data_var, measure = "SMD",
+data_var_trans <- escalc(n1i = SAMPLE_SIZE_HC, n2i = SAMPLE_SIZE_SZ, m1i = Mean_of_var_in_HC, m2i = Mean_of_var_in_SZ, 
+    sd1i = SD_of_var_in_HC, sd2i = SD_of_var_in_SZ, data = data_var_trans, measure = "SMD",
     append = TRUE)
 
 # Using the effect sizes and variance we can calculate the random-effects meta-analysis. The results are stored in the object 'ma_model_1'. You can retrieve the results using the summary() function.
-ma_model_1 <- rma(yi, vi, data = data_var)
+ma_model_1 <- rma(yi, vi, data = data_var_trans)
 summary(ma_model_1)
 
-# There is a lot of info in the R output above. Most importantly you can see that there is an summary effect size of 0.2425 representing differences between patients and controls. Also this difference is statistically insignificant with a p=0.4054. In order to visualize the results you can create a forest-plot using the forest() function.
-# for that reason, we add a unique ID for each row
+# There is a lot of info in the R output above. Most importantly you can see that there is an summary effect size of 0.0343 representing differences between patients and controls. Also this difference is statistically insignificant with a p=0.9337. In order to visualize the results you can create a forest-plot using the forest() function.
 
-data_var <- mutate(data_var, unique_ID = row_number())
-
-forest(ma_model_1, slab = paste(as.character(data_var$unique_ID), sep = ", "))
+forest(ma_model_1, slab = paste(as.character(data_var_trans$unique_ID), sep = ", "))
 
 # A common way to investigate potential publication bias in a meta-analysis is the funnel plot. Asymmetrical distribution indicates potential publication bias.
 
