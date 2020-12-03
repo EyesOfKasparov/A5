@@ -150,3 +150,36 @@ forest(updated_ma_model_1, slab = new_data_var$unique_ID)
   
 ```
 
+### Data Freq
+```{r}
+data_freq_new <- nice_data %>% 
+  select(c(ArticleID,
+           StudyID,
+           Title,
+           Authors,
+           Year_publication,
+           Article,
+           SAMPLE_SIZE_SZ,
+           SAMPLE_SIZE_HC,
+           frequency,
+           PITCH_F0_HC_M,
+           PITCH_F0_HC_SD,
+           PITCH_F0_SZ_M,
+           PITCH_F0_SZ_SD)) %>% 
+  bind_rows(a3_wide) %>%
+  # Doing the escalc stuff
+  escalc(n1i = SAMPLE_SIZE_HC,
+                       n2i = SAMPLE_SIZE_SZ,
+                       m1i = PITCH_F0_HC_M,
+                       m2i = PITCH_F0_SZ_M,
+                       sd1i = PITCH_F0_HC_SD,
+                       sd2i = PITCH_F0_SZ_SD,
+                       data = ., measure = "SMD", append = TRUE) %>% 
+  mutate(unique_id = row_number())
+
+ma_model_2_updated <- rma(yi, vi, data = data_freq_new)
+summary(ma_model_2_updated)
+
+forest(ma_model_2_updated, slab = data_freq_new$unique_id)
+```
+
