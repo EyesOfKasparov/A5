@@ -104,6 +104,12 @@ data_var <- data %>%
     Mean_of_var_in_SZ = PITCH_F0SD_SZ_M,
     SD_of_var_in_SZ = PITCH_F0SD_SZ_SD)
 
+data_var_trans <- data_var %>% 
+  mutate(Mean_of_var_in_SZ = if_else(pitch_f0_variability == "Log10  Hz", 10**Mean_of_var_in_SZ, Mean_of_var_in_SZ),
+         SD_of_var_in_SZ = if_else(pitch_f0_variability == "Log10  Hz", 10**SD_of_var_in_SZ, SD_of_var_in_SZ),
+         pitch_f0_variability = if_else(pitch_f0_variability == "Log10  Hz", "hz", pitch_f0_variability)) %>% 
+  filter(str_detect(pitch_f0_variability, 'hz|Hz|herz|Herz') | is.na(pitch_f0_variability),
+         !str_detect(pitch_f0_variability, 'not specified, maybe hz?') | is.na(pitch_f0_variability))
 
 
 # In the first step we use the escalc() function to calculate effect sizes and their variance.
@@ -132,7 +138,7 @@ funnel(ma_model_1)
 
 ### Data var 
 ```{r}
-new_data_var <- data_var %>% 
+new_data_var <- data_var_trans %>% 
   bind_rows(a3_wide) %>% 
   escalc(n1i = SAMPLE_SIZE_HC, n2i = SAMPLE_SIZE_SZ, m1i = Mean_of_var_in_HC, m2i = Mean_of_var_in_SZ, 
     sd1i = SD_of_var_in_HC, sd2i = SD_of_var_in_SZ, data = ., measure = "SMD",
