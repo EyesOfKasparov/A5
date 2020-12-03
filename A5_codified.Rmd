@@ -40,10 +40,46 @@ Prisma chart: https://www.dropbox.com/s/vbjf6ff73dv9tru/PRISMA%202009%20flow%20d
 ```{r}
 library(xlsx)
 library(tidyverse)
+pacman::p_load(metafor)
 ```
 
 ```{r}
 raw_excel <- read.xlsx("data.xlsx", 1)
 write_csv(raw_excel, "nice_format_data.csv")
+
+nice_data <- read_csv("nice_format_data.csv")
 ```
+
+# Finding relevant columns
+```{r}
+nice_data %>% 
+  select(StudyID, ArticleID, Article, frequency, starts_with("PITCH_F0") & !(starts_with("PITCH_F0_ENTROPY") | starts_with("PITCH_F0RAN"))) %>% 
+  View()
+```
+
+### Assignment 3 data
+```{r}
+a3_dat_raw <- read_csv("../A3-2/finalish_data.csv")
+
+a3_dat <- a3_dat_raw %>% 
+  drop_na(Diagnosis) %>% 
+  mutate(Diagnosis = if_else(Diagnosis == "Control", "HC", "SZ")) %>% 
+  group_by(Diagnosis) %>% 
+  summarise(SAMPLE_SIZE = n(), 
+            SD_of_var_in = sd(freq_sd),
+            freq_sd = sd(freq_mean), 
+            freq_mean = mean(freq_mean), 
+            Mean_of_var_in = mean(freq_sd, na.rm = T))
+    
+
+    # Mean_of_var_in_HC = PITCH_F0SD_HC_M,
+    # SD_of_var_in_HC = PITCH_F0SD_HC_SD,
+    # Mean_of_var_in_SZ = PITCH_F0SD_SZ_M,
+    # SD_of_var_in_SZ = PITCH_F0SD_SZ_SD
+
+    
+a3_wide <- a3_dat %>% 
+  pivot_wider(names_from = Diagnosis, values_from = SAMPLE_SIZE:Mean_of_var_in)
+```
+
 
