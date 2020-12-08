@@ -80,8 +80,12 @@ data_freq <- data %>%
            PITCH_F0_HC_M,
            PITCH_F0_HC_SD,
            PITCH_F0_SZ_M,
-           PITCH_F0_SZ_SD)) 
-
+           PITCH_F0_SZ_SD)) %>%
+  mutate(unique_ID = row_number()) %>% 
+  # filter out N/A's in healthy controls
+  filter(!is.na(PITCH_F0_HC_M)) %>% 
+  # filter out frequency not measured in Hz
+  filter(frequency == "hz")
 
 # standardizing the unit for frequency
 ## st2f(st, base = 50)
@@ -122,7 +126,7 @@ However, this difference is statistically insignificant, p = 0.2948.
 # visualize the results with a forest-plot using the forest() function.
 
 forest(ma_model_2,
-       slab = paste(data_freq_es$StudyID, as.character(data_freq_es$Year_publication), sep = ", "))
+       slab = paste(data_freq_es$unique_ID, as.character(data_freq_es$Year_publication), sep = ", "))
 
 # A common way to investigate potential publication bias in a meta-analysis is the funnel plot. Asymmetrical distribution indicates potential publication bias.
 
