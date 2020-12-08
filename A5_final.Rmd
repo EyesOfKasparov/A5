@@ -261,7 +261,7 @@ data_freq_new <- data_freq %>%
 ma_model_2_updated <- rma(yi, vi, data = data_freq_new)
 summary(ma_model_2_updated)
 
-forest(ma_model_2_updated, slab = data_freq_new$unique_id)
+forest(ma_model_2_updated, slab = data_freq_new$Article)
 ```
 
 
