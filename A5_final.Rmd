@@ -1,0 +1,369 @@
+---
+title: "Assignment 5 - Meta-analysis of pitch in schizophrenia"
+author: "Riccardo Fusaroli"
+date: "3/7/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Building on the shoulders of giants: meta-analysis
+
+## Questions to be answered
+
+1. What is the current evidence for distinctive vocal patterns in schizophrenia? Report how many papers report quantitative estimates, comment on what percentage of the overall studies reviewed they represent (see PRISMA chart) your method to analyze them, the estimated effect size of the difference (mean effect size and standard error) and forest plots representing it. N.B. Only measures of pitch mean and pitch sd are required for the assignment (all the other measures have been removed from the dataset for the sake of simplicity). 
+
+2. Do the results match your own analysis from Assignment 3? If you add your results to the meta-analysis, do the estimated effect sizes change? Report the new estimates and the new forest plots.
+
+3. Assess the quality of the literature: report and comment on heterogeneity of the studies (tau, I2), on publication bias (funnel plot), and on influential studies.
+
+## Tips on the process to follow:
+
+- Download the data on all published articles analyzing voice in schizophrenia and the prisma chart as reference of all articles found and reviewed
+Data: https://www.dropbox.com/s/0l9ur0gaabr80a8/Matrix_MetaAnalysis_Diagnosis_updated290719.xlsx?dl=0
+Prisma chart: https://www.dropbox.com/s/vbjf6ff73dv9tru/PRISMA%202009%20flow%20diagram_PP.pptx?dl=0 
+- Look through the dataset to find out which columns to use, and if there is any additional information written as comments (real world data is always messy!).
+    * Hint: PITCH_F0M and PITCH_F0SD group of variables are what you need
+- Following the procedure in the slides calculate effect size and standard error of the effect size per each study. N.B. we focus on pitch mean and pitch standard deviation.
+ . first try using lmer (to connect to what you know of mixed effects models)
+ . then use rma() (to get some juicy additional statistics)
+
+- Build a forest plot of the results (forest(model))
+ 
+- Go back to Assignment 3, add your own study to the data table, and re-run meta-analysis. Do the results change?
+
+- Now look at the output of rma() and check tau and I2
+# Data preprocessing 
+```{r}
+library(xlsx)
+library(tidyverse)
+pacman::p_load(metafor)
+```
+
+```{r}
+raw_excel <- read.xlsx("data.xlsx", 1)
+write_csv(raw_excel, "nice_format_data.csv")
+
+nice_data <- read_csv("nice_format_data.csv")
+```
+
+
+# Q1 Code 
+
+### Part 1: Frequency
+```{r Load packages & data}
+
+#pacman::p_load(tidyverse, ggplot2, metafor)
+
+data <- read_csv("nice_format_data.csv")
+
+```
+
+
+*Look through the dataset to find out which columns to use, and if there is any additional information written as comments (real world data is always messy!).*
+    . Hint: PITCH_F0M and PITCH_F0SD group of variables are what you need
+
+```{r Subset frequency data}
+
+data_freq <- data %>% 
+  select(c(ArticleID,
+           StudyID,
+           Title,
+           Authors,
+           Year_publication,
+           Article,
+           SAMPLE_SIZE_SZ,
+           SAMPLE_SIZE_HC,
+           frequency,
+           PITCH_F0_HC_M,
+           PITCH_F0_HC_SD,
+           PITCH_F0_SZ_M,
+           PITCH_F0_SZ_SD)) 
+
+
+# standardizing the unit for frequency
+## st2f(st, base = 50)
+
+
+```
+
+
+*Following the procedure in the slides calculate effect size and standard error of the effect size per each study. N.B. we focus on pitch mean and pitch standard deviation.*
+ . first try using lmer (to connect to what you know of mixed effects models)
+ . then use rma() (to get some juicy additional statistics)
+
+```{r Effect size}
+
+# use escalc() function to calculate effect sizes
+data_freq_es <- escalc(n1i = SAMPLE_SIZE_HC,
+                       n2i = SAMPLE_SIZE_SZ,
+                       m1i = PITCH_F0_HC_M,
+                       m2i = PITCH_F0_SZ_M,
+                       sd1i = PITCH_F0_HC_SD,
+                       sd2i = PITCH_F0_SZ_SD,
+                       data = data_freq, measure = "SMD", append = TRUE)
+
+
+# using effect sizes to calculate random-effects meta-analysis
+ma_model_2 <- rma(yi, vi, data = data_freq_es)
+summary(ma_model_2)
+
+```
+
+We can see that there is a summary effect size of -0.1628 representing differences between patients and controls.
+However, this difference is statistically insignificant, p = 0.2948.
+
+*Build a forest plot of the results (forest(model))*
+
+```{r Forest plot}
+
+# visualize the results with a forest-plot using the forest() function.
+
+forest(ma_model_2,
+       slab = paste(data_freq_es$StudyID, as.character(data_freq_es$Year_publication), sep = ", "))
+
+# A common way to investigate potential publication bias in a meta-analysis is the funnel plot. Asymmetrical distribution indicates potential publication bias.
+
+funnel(ma_model_2)
+
+```
+
+## Part 2: Variability
+```{r}
+#load data and packages
+pacman::p_load(tidyverse, ggplot2, metafor, dplyr)
+
+#create 2 dataframes, separately for the frequency and the variability data columns
+data_freq <- data %>% 
+  select(c(ArticleID, StudyID, Title, Authors, Year_publication, Article, SAMPLE_SIZE_SZ, SAMPLE_SIZE_HC, frequency, PITCH_F0_HC_M, PITCH_F0_HC_SD, PITCH_F0_SZ_M, PITCH_F0_SZ_SD)) 
+
+# in the variability data rename the columns to more straightofrward names, and add row number as unique ID
+data_var <- data %>% 
+  select(c(ArticleID, StudyID, Title, Authors, Year_publication, Article, SAMPLE_SIZE_SZ, SAMPLE_SIZE_HC, pitch_f0_variability, PITCH_F0SD_HC_M, PITCH_F0SD_HC_SD, PITCH_F0SD_SZ_M, PITCH_F0SD_SZ_SD)) %>% 
+  rename(
+    Mean_of_var_in_HC = PITCH_F0SD_HC_M,
+    SD_of_var_in_HC = PITCH_F0SD_HC_SD,
+    Mean_of_var_in_SZ = PITCH_F0SD_SZ_M,
+    SD_of_var_in_SZ = PITCH_F0SD_SZ_SD) %>%
+  mutate(unique_ID = row_number())
+  
+# create a new dataframe, where the sound units are changed/uniformizied to Herz (by taking the exponent of the values in the rows where the pitch_f0_variability is "Log10 Hz")
+
+data_var_trans <- data_var %>% 
+  mutate(Mean_of_var_in_SZ = if_else(pitch_f0_variability == "Log10  Hz", 10**Mean_of_var_in_SZ, Mean_of_var_in_SZ),
+         SD_of_var_in_SZ = if_else(pitch_f0_variability == "Log10  Hz", 10**SD_of_var_in_SZ, SD_of_var_in_SZ),
+         pitch_f0_variability = if_else(pitch_f0_variability == "Log10  Hz", "hz", pitch_f0_variability)) %>% 
+  filter(str_detect(pitch_f0_variability, 'hz|Hz|herz|Herz') | is.na(pitch_f0_variability),
+         !str_detect(pitch_f0_variability, 'not specified, maybe hz?') | is.na(pitch_f0_variability))
+
+# In the first step we use the escalc() function to calculate effect sizes and their variance.
+data_var_trans <- escalc(n1i = SAMPLE_SIZE_HC, n2i = SAMPLE_SIZE_SZ, m1i = Mean_of_var_in_HC, m2i = Mean_of_var_in_SZ, 
+    sd1i = SD_of_var_in_HC, sd2i = SD_of_var_in_SZ, data = data_var_trans, measure = "SMD",
+    append = TRUE)
+
+# Using the effect sizes and variance we can calculate the random-effects meta-analysis. The results are stored in the object 'ma_model_1'. You can retrieve the results using the summary() function.
+ma_model_1 <- rma(yi, vi, data = data_var_trans)
+summary(ma_model_1)
+
+# There is a lot of info in the R output above. Most importantly you can see that there is an summary effect size of 0.3646 representing differences between patients and controls. This difference is statistically significant with p=0.0123. In order to visualize the results you can create a forest-plot using the forest() function.
+```
+
+# Q2: Adding our results to the meta analysis
+### Preparing assignment 3 data
+```{r}
+a3_dat_raw <- read_csv("../A3-2/finalish_data.csv")
+
+a3_dat <- a3_dat_raw %>% 
+  drop_na(Diagnosis) %>% 
+  mutate(Diagnosis = if_else(Diagnosis == "Control", "HC", "SZ")) %>% 
+  group_by(study_nr, Diagnosis) %>% 
+  summarise(SAMPLE_SIZE = n(), 
+            SD_of_var_in = sd(freq_sd),
+            freq_sd = sd(freq_mean), 
+            freq_mean = mean(freq_mean), 
+            Mean_of_var_in = mean(freq_sd, na.rm = T))
+    
+
+    # Mean_of_var_in_HC = PITCH_F0SD_HC_M,
+    # SD_of_var_in_HC = PITCH_F0SD_HC_SD,
+    # Mean_of_var_in_SZ = PITCH_F0SD_SZ_M,
+    # SD_of_var_in_SZ = PITCH_F0SD_SZ_SD
+
+    
+a3_wide <- a3_dat %>% 
+  pivot_wider(names_from = Diagnosis, 
+              values_from = SAMPLE_SIZE:Mean_of_var_in) %>% 
+  rename(PITCH_F0_SZ_SD = freq_sd_SZ, 
+         PITCH_F0_SZ_M = freq_mean_SZ, 
+         PITCH_F0_HC_SD = freq_sd_HC, 
+         PITCH_F0_HC_M = freq_mean_HC) %>% 
+  mutate(ArticleID = 100 + row_number(),
+         StudyID = 100 + row_number(), 
+         Authors = "El Nino, Lord Esbo, Biker Davo, Vero the Hero, JoJo el Salsa")
+
+```
+
+### El Vero Codo
+```{r}
+data_freq <- nice_data %>% 
+  select(c(ArticleID, StudyID, Title, Authors, Year_publication, Article, SAMPLE_SIZE_SZ, SAMPLE_SIZE_HC, frequency, PITCH_F0_HC_M, PITCH_F0_HC_SD, PITCH_F0_SZ_M, PITCH_F0_SZ_SD)) 
+
+data_var <- data %>% 
+  select(c(ArticleID, StudyID, Title, Authors, Year_publication, Article, SAMPLE_SIZE_SZ, SAMPLE_SIZE_HC, pitch_f0_variability, PITCH_F0SD_HC_M, PITCH_F0SD_HC_SD, PITCH_F0SD_SZ_M, PITCH_F0SD_SZ_SD)) %>% 
+  rename(
+    Mean_of_var_in_HC = PITCH_F0SD_HC_M,
+    SD_of_var_in_HC = PITCH_F0SD_HC_SD,
+    Mean_of_var_in_SZ = PITCH_F0SD_SZ_M,
+    SD_of_var_in_SZ = PITCH_F0SD_SZ_SD)
+
+data_var_trans <- data_var %>% 
+  mutate(Mean_of_var_in_SZ = if_else(pitch_f0_variability == "Log10  Hz", 10**Mean_of_var_in_SZ, Mean_of_var_in_SZ),
+         SD_of_var_in_SZ = if_else(pitch_f0_variability == "Log10  Hz", 10**SD_of_var_in_SZ, SD_of_var_in_SZ),
+         pitch_f0_variability = if_else(pitch_f0_variability == "Log10  Hz", "hz", pitch_f0_variability)) %>% 
+  filter(str_detect(pitch_f0_variability, 'hz|Hz|herz|Herz') | is.na(pitch_f0_variability),
+         !str_detect(pitch_f0_variability, 'not specified, maybe hz?') | is.na(pitch_f0_variability))
+
+
+# In the first step we use the escalc() function to calculate effect sizes and their variance.
+data_var_trans <- escalc(n1i = SAMPLE_SIZE_HC, n2i = SAMPLE_SIZE_SZ, m1i = Mean_of_var_in_HC, m2i = Mean_of_var_in_SZ, 
+    sd1i = SD_of_var_in_HC, sd2i = SD_of_var_in_SZ, data = data_var_trans, measure = "SMD",
+    append = TRUE)
+
+# Using the effect sizes and variance we can calculate the random-effects meta-analysis. The results are stored in the object 'ma_model_1'. You can retrieve the results using the summary() function.
+ma_model_1 <- rma(yi, vi, data = data_var_trans)
+summary(ma_model_1)
+
+# There is a lot of info in the R output above. Most importantly you can see that there is an summary effect size of 0.2425 representing differences between patients and controls. Also this difference is statistically insignificant with a p=0.4054. In order to visualize the results you can create a forest-plot using the forest() function.
+# for that reason, we add a unique ID for each row
+
+data_var_trans <- mutate(data_var_trans, unique_ID = row_number())
+
+forest(ma_model_1, slab = data_var_trans$unique_ID)
+
+# A common way to investigate potential publication bias in a meta-analysis is the funnel plot. Asymmetrical distribution indicates potential publication bias.
+
+funnel(ma_model_1)
+
+```
+
+## Adding our results
+
+### Data var 
+```{r}
+new_data_var <- data_var_trans %>% 
+  bind_rows(a3_wide) %>% 
+  escalc(n1i = SAMPLE_SIZE_HC, n2i = SAMPLE_SIZE_SZ, m1i = Mean_of_var_in_HC, m2i = Mean_of_var_in_SZ, 
+    sd1i = SD_of_var_in_HC, sd2i = SD_of_var_in_SZ, data = ., measure = "SMD",
+    append = TRUE) %>% 
+  mutate(unique_ID = row_number())
+
+
+updated_ma_model_1 <- rma(yi, vi, data = new_data_var)
+summary(updated_ma_model_1)
+
+forest(updated_ma_model_1, slab = new_data_var$unique_ID)
+
+
+  
+```
+
+### Data Freq
+```{r}
+data_freq_new <- nice_data %>% 
+  select(c(ArticleID,
+           StudyID,
+           Title,
+           Authors,
+           Year_publication,
+           Article,
+           SAMPLE_SIZE_SZ,
+           SAMPLE_SIZE_HC,
+           frequency,
+           PITCH_F0_HC_M,
+           PITCH_F0_HC_SD,
+           PITCH_F0_SZ_M,
+           PITCH_F0_SZ_SD)) %>% 
+  filter(str_detect(frequency, "hz") | is.na(frequency)) %>% 
+  bind_rows(a3_wide) %>%
+  # Doing the escalc stuff
+  escalc(n1i = SAMPLE_SIZE_HC,
+                       n2i = SAMPLE_SIZE_SZ,
+                       m1i = PITCH_F0_HC_M,
+                       m2i = PITCH_F0_SZ_M,
+                       sd1i = PITCH_F0_HC_SD,
+                       sd2i = PITCH_F0_SZ_SD,
+                       data = ., measure = "SMD", append = TRUE) %>% 
+  mutate(unique_id = row_number())
+
+ma_model_2_updated <- rma(yi, vi, data = data_freq_new)
+summary(ma_model_2_updated)
+
+forest(ma_model_2_updated, slab = data_freq_new$unique_id)
+```
+
+
+
+# Q3: 
+```{r}
+pacman::p_load(tidyverse,ggplot2, forestplot, RCurl, bitops, metafor, Formula)
+df <- data
+
+df_freq <- df %>% 
+    select(c(ArticleID, StudyID, Title, Authors, Year_publication, Article, SAMPLE_SIZE_HC, SAMPLE_SIZE_SZ, frequency, PITCH_F0_HC_M, PITCH_F0_HC_SD,PITCH_F0_SZ_M,PITCH_F0_SZ_SD)) %>% drop_na %>% filter(frequency == "hz")
+
+df_freq_var <- df %>% 
+    select(c(ArticleID, StudyID, Title, Authors, Year_publication, Article, SAMPLE_SIZE_HC, SAMPLE_SIZE_SZ, pitch_f0_variability, PITCH_F0SD_HC_M,PITCH_F0SD_HC_SD,PITCH_F0SD_SZ_M,PITCH_F0SD_SZ_SD)) %>% 
+    filter(PITCH_F0SD_HC_M > 5)
+
+# 3
+model_data_freq <- metafor::escalc(
+        n1i = SAMPLE_SIZE_HC,
+        n2i = SAMPLE_SIZE_SZ,
+        m1i = PITCH_F0_HC_M,
+        m2i = PITCH_F0_SZ_M,
+        sd1i = PITCH_F0_HC_SD,
+        sd2i = PITCH_F0_SZ_SD,
+        data = df_freq,
+        measure = "SMD",
+        append = T
+    ) 
+
+model_freq <- rma(
+    yi,
+    vi,
+    data = model_data_freq
+)
+
+model_data_freq_var <- metafor::escalc(
+        n1i = SAMPLE_SIZE_HC,
+        n2i = SAMPLE_SIZE_SZ,
+        m1i = PITCH_F0SD_HC_M,
+        m2i = PITCH_F0SD_SZ_M,
+        sd1i = PITCH_F0SD_HC_SD,
+        sd2i = PITCH_F0SD_SZ_SD,
+        data = df_freq_var,
+        measure = "SMD",
+        append = T
+    )
+
+# model_data_freq_var <- model_data_freq_var %>% filter(yi > -1)
+
+model_freq_var <- rma(
+    yi,
+    vi,
+    data = model_data_freq_var
+)
+
+forest(model_freq, slab = df_freq$Article)
+forest(model_freq_var, slab = df_freq_var$Article)
+summary(model_freq_var)
+
+funnel(model_freq)
+funnel(model_freq_var)
+
+model_data_freq_var %>% as.data.frame
+
+```
+
