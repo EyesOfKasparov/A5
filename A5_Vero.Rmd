@@ -41,11 +41,16 @@ data_var <- data %>%
 # create a new dataframe, where the sound units are changed/uniformizied to Herz (by taking the exponent of the values in the rows where the pitch_f0_variability is "Log10 Hz")
 
 data_var_trans <- data_var %>% 
-  mutate(Mean_of_var_in_SZ = if_else(pitch_f0_variability == "Log10  Hz", 10**Mean_of_var_in_SZ, Mean_of_var_in_SZ),
-         SD_of_var_in_SZ = if_else(pitch_f0_variability == "Log10  Hz", 10**SD_of_var_in_SZ, SD_of_var_in_SZ),
+  mutate(Mean_of_var_in_SZ_log = Mean_of_var_in_SZ,
+         SD_of_var_in_SZ_log = SD_of_var_in_SZ) %>% 
+  mutate(Mean_of_var_in_SZ_log = if_else(pitch_f0_variability == "Log10  Hz", 10**Mean_of_var_in_SZ_log, Mean_of_var_in_SZ_log),
+         SD_of_var_in_SZ_log = if_else(pitch_f0_variability == "Log10  Hz", 10**SD_of_var_in_SZ_log, SD_of_var_in_SZ_log),
          pitch_f0_variability = if_else(pitch_f0_variability == "Log10  Hz", "hz", pitch_f0_variability)) %>% 
+  mutate(Mean_of_var_in_SZ = coalesce(Mean_of_var_in_SZ_log, Mean_of_var_in_SZ),
+         SD_of_var_in_SZ = coalesce(SD_of_var_in_SZ_log, SD_of_var_in_SZ)) %>% 
   filter(str_detect(pitch_f0_variability, 'hz|Hz|hertz|Hertz') | is.na(pitch_f0_variability),
          !str_detect(pitch_f0_variability, 'not specified, maybe hz?') | is.na(pitch_f0_variability))
+
 
 # In the first step we use the escalc() function to calculate effect sizes and their variance.
 data_var_trans <- escalc(n1i = SAMPLE_SIZE_HC, n2i = SAMPLE_SIZE_SZ, m1i = Mean_of_var_in_HC, m2i = Mean_of_var_in_SZ, 
