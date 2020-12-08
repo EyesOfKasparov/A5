@@ -60,8 +60,6 @@ nice_data <- read_csv("nice_format_data.csv")
 data <- read_csv("nice_format_data.csv")
 
 ```
-
-
 *Look through the dataset to find out which columns to use, and if there is any additional information written as comments (real world data is always messy!).*
     . Hint: PITCH_F0M and PITCH_F0SD group of variables are what you need
 
@@ -134,15 +132,14 @@ funnel(ma_model_2)
 
 ```
 
+
+
 ## Part 2: Variability
 ```{r}
 #load data and packages
 pacman::p_load(tidyverse, ggplot2, metafor, dplyr)
 data <- read_csv("nice_format_data.csv")
 
-#create 2 dataframes, separately for the frequency and the variability data columns
-data_freq <- data %>% 
-  select(c(ArticleID, StudyID, Title, Authors, Year_publication, Article, SAMPLE_SIZE_SZ, SAMPLE_SIZE_HC, frequency, PITCH_F0_HC_M, PITCH_F0_HC_SD, PITCH_F0_SZ_M, PITCH_F0_SZ_SD)) 
 
 # in the variability data rename the columns to more straightofrward names, and add row number as unique ID
 data_var <- data %>% 
@@ -220,7 +217,7 @@ a3_wide <- a3_dat %>%
   mutate(ArticleID = 100 + row_number(),
          StudyID = 100 + row_number(), 
          Authors = "El Nino, Lord Esbo, Biker Davo, Vero the Hero, JoJo el Salsa",
-         Article = paste0("Study Group 3 (2020) (", study_nr, ")"))
+         Article = paste0("Study Group 2 (2020) (", study_nr, ")"))
 
 ```
 
